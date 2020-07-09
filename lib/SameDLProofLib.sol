@@ -26,37 +26,6 @@ library SameDLProofLib {
         BigNumber.instance memory p,
         BigNumber.instance memory q
     ) internal view returns (bool) {
-        // (pi.t1, pi.t2) = (pi.t1.mod(p), pi.t2.mod(p));
-        // pi.r = pi.r.mod(q);
-        // (g1, g2) = (g1.mod(p), g2.mod(p));
-        // (y1, y2) = (y1.mod(p), y2.mod(p));
-
-        // bytes memory pack = new bytes(
-        //     g1.val.length +
-        //         g2.val.length +
-        //         y1.val.length +
-        //         y2.val.length +
-        //         pi.t1.val.length +
-        //         pi.t2.val.length
-        // );
-        // uint256 offset = 0;
-        // for (uint256 i = 0; i < g1.val.length; i++) pack[i] = g1.val[i];
-        // offset += g1.val.length;
-        // for (uint256 i = 0; i < g2.val.length; i++)
-        //     pack[i + offset] = g2.val[i];
-        // offset += g2.val.length;
-        // for (uint256 i = 0; i < y1.val.length; i++)
-        //     pack[i + offset] = y1.val[i];
-        // offset += y1.val.length;
-        // for (uint256 i = 0; i < y2.val.length; i++)
-        //     pack[i + offset] = y2.val[i];
-        // offset += y2.val.length;
-        // for (uint256 i = 0; i < pi.t1.val.length; i++)
-        //     pack[i + offset] = pi.t1.val[i];
-        // offset += pi.t1.val.length;
-        // for (uint256 i = 0; i < pi.t2.val.length; i++)
-        //     pack[i + offset] = pi.t2.val[i];
-
         bytes32 digest = keccak256(
             // pack
             abi.encodePacked(
@@ -108,13 +77,6 @@ library SameDLProofLib {
         BigNumber.instance memory p,
         BigNumber.instance memory q
     ) internal view returns (bool) {
-        require(
-            pi.length == g1.length &&
-                pi.length == g2.length &&
-                pi.length == y1.length &&
-                pi.length == y2.length,
-            "The length of g1, g2, y1, y2 and pi must be same."
-        );
         for (uint256 i = 0; i < pi.length; i++) {
             if (valid(pi[i], g1[i], g2[i], y1[i], y2[i], p, q) == false)
                 return false;

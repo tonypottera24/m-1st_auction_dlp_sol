@@ -239,12 +239,6 @@ library CtLib {
         BigNumber.instance storage p,
         BigNumber.instance storage q
     ) internal view returns (Ct[] memory) {
-        require(
-            ct.length == ux.length &&
-                ct.length == uxInv.length &&
-                ct.length == pi.length,
-            "length of ct, ux, uxInv and pi must be same."
-        );
         Ct[] memory result = new Ct[](ct.length);
         for (uint256 i = 0; i < ct.length; i++) {
             result[i] = decrypt(ct[i], a, ux[i], uxInv[i], pi[i], g, p, q);

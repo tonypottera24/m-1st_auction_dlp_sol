@@ -136,7 +136,6 @@ library Bid01ProofLib {
         BigNumber.instance memory zInv,
         BigNumber.instance storage p
     ) internal {
-        require(pi.length == bidU.length, "pi, bidU must have same length.");
         for (uint256 i = 0; i < pi.length; i++) {
             setU(pi[i], bidU[i], zInv, p);
         }
@@ -171,12 +170,6 @@ library Bid01ProofLib {
         BigNumber.instance storage p,
         BigNumber.instance storage q
     ) internal {
-        require(
-            pi.length == ctV.length &&
-                pi.length == ctVV.length &&
-                pi.length == piSDL.length,
-            "pi, ctV, ctVV, piSDL must have same length."
-        );
         for (uint256 i = 0; i < pi.length; i++) {
             setV(pi[i], ctV[i], ctVV[i], piSDL[i], p, q);
         }
@@ -206,12 +199,6 @@ library Bid01ProofLib {
         BigNumber.instance storage p,
         BigNumber.instance storage q
     ) internal {
-        require(
-            pi.length == uxV.length &&
-                pi.length == uxVInv.length &&
-                pi.length == piVSDL.length,
-            "pi, uxV, uxVInv, piSDL must have same length."
-        );
         for (uint256 i = 0; i < pi.length; i++) {
             setA(pi[i], auctioneer, uxV[i], uxVInv[i], piVSDL[i], g, p, q);
         }
@@ -241,12 +228,6 @@ library Bid01ProofLib {
         BigNumber.instance storage p,
         BigNumber.instance storage q
     ) internal {
-        require(
-            pi.length == uxVV.length &&
-                pi.length == uxVVInv.length &&
-                pi.length == piVVSDL.length,
-            "pi, uxVV, uxVVInv, piSDL must have same length."
-        );
         for (uint256 i = 0; i < pi.length; i++) {
             setAA(pi[i], auctioneer, uxVV[i], uxVVInv[i], piVVSDL[i], g, p, q);
         }

@@ -43,13 +43,6 @@ library CtSameDLProofLib {
         BigNumber.instance storage p,
         BigNumber.instance storage q
     ) internal view returns (bool) {
-        require(
-            pi.length == g1.length &&
-                pi.length == g2.length &&
-                pi.length == y1.length &&
-                pi.length == y2.length,
-            "The length of g1, g2, y1, y2 and pi must be same."
-        );
         for (uint256 i = 0; i < pi.length; i++) {
             if (valid(pi[i], g1[i], g2[i], y1[i], y2[i], p, q) == false)
                 return false;
