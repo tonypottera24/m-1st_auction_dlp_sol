@@ -4,13 +4,13 @@ pragma experimental ABIEncoderV2;
 
 import {BigNumber} from "./BigNumber.sol";
 
-struct Auctioneer {
-    uint256 index;
-    address payable addr;
-    uint256 balance;
-    BigNumber.instance elgamalY;
-    bool malicious;
-}
+// struct Auctioneer {
+// uint256 index;
+// address payable addr;
+// uint256 balance;
+// BigNumber.instance elgamalY;
+// bool malicious;
+// }
 
 struct AuctioneerList {
     Auctioneer[] list;

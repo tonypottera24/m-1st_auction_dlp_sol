@@ -13,6 +13,7 @@ struct Bidder {
     address payable addr;
     uint256 balance;
     bool malicious;
+    BigNumber.instance elgamalY;
     Ct[] bid;
     Ct bidProd;
     Bid01Proof[] bid01Proof;
@@ -85,8 +86,7 @@ library BidderListLib {
         returns (Bidder storage)
     {
         uint256 i = bList.map[addr];
-        if (i == 0 && get(bList, i).addr != addr)
-            revert("Auctioneer not found.");
+        if (i == 0 && get(bList, i).addr != addr) revert("Bidder not found.");
         return get(bList, i);
     }
 
