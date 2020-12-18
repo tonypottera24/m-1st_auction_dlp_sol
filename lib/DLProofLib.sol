@@ -16,13 +16,8 @@ library DLProofLib {
     function valid(
         DLProof memory pi,
         BigNumber.instance memory g,
-        BigNumber.instance memory y,
-        BigNumber.instance storage p,
-        BigNumber.instance storage q
+        BigNumber.instance memory y
     ) internal view returns (bool) {
-        // (pi.t, pi.r) = (pi.t.mod(p), pi.r.mod(q));
-        // (g, y) = (g.mod(p), y.mod(p));
-
         bytes32 digest = keccak256(abi.encodePacked(g.val, y.val, pi.t.val));
         uint256 bit_length = 0;
         for (uint256 i = 0; i < 256; i++) {
@@ -38,7 +33,7 @@ library DLProofLib {
             false,
             bit_length
         );
-        c = c.mod(q);
-        return pi.t.equals(g.pow(pi.r, p).mul(y.pow(c, p), p), p);
+        c = c.modQ();
+        return pi.t.equals(g.pow(pi.r).mul(y.pow(c)));
     }
 }

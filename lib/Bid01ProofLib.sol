@@ -4,7 +4,6 @@ pragma experimental ABIEncoderV2;
 
 import {BigNumber} from "./BigNumber.sol";
 import {BigNumberLib} from "./BigNumberLib.sol";
-import {Auctioneer} from "./AuctioneerListLib.sol";
 import {Bidder, BidderList, BidderListLib} from "./BidderListLib.sol";
 import {Ct, CtLib} from "./CtLib.sol";
 import {SameDLProof, SameDLProofLib} from "./SameDLProofLib.sol";
@@ -26,118 +25,92 @@ library Bid01ProofLib {
     using SameDLProofLib for SameDLProof;
     using CtSameDLProofLib for CtSameDLProof;
 
-    function stageU(Bid01Proof storage pi, BigNumber.instance storage p)
-        internal
-        view
-        returns (bool)
-    {
+    function stageU(Bid01Proof storage pi) internal view returns (bool) {
         return
-            pi.u.isNotSet(p) &&
-            pi.uu.isNotSet(p) &&
-            pi.v.isNotSet(p) &&
-            pi.vv.isNotSet(p) &&
-            pi.a.isNotSet(p) &&
-            pi.aa.isNotSet(p);
+            pi.u.isNotSet() &&
+            pi.uu.isNotSet() &&
+            pi.v.isNotSet() &&
+            pi.vv.isNotSet() &&
+            pi.a.isNotSet() &&
+            pi.aa.isNotSet();
     }
 
-    function stageV(Bid01Proof storage pi, BigNumber.instance storage p)
-        internal
-        view
-        returns (bool)
-    {
+    function stageV(Bid01Proof storage pi) internal view returns (bool) {
         return
-            pi.u.isSet(p) &&
-            pi.uu.isSet(p) &&
-            pi.v.isNotSet(p) &&
-            pi.vv.isNotSet(p) &&
-            pi.a.isNotSet(p) &&
-            pi.aa.isNotSet(p);
+            pi.u.isSet() &&
+            pi.uu.isSet() &&
+            pi.v.isNotSet() &&
+            pi.vv.isNotSet() &&
+            pi.a.isNotSet() &&
+            pi.aa.isNotSet();
     }
 
-    function stageA(Bid01Proof storage pi, BigNumber.instance storage p)
-        internal
-        view
-        returns (bool)
-    {
-        return
-            pi.u.isSet(p) && pi.uu.isSet(p) && pi.v.isSet(p) && pi.vv.isSet(p);
+    function stageA(Bid01Proof storage pi) internal view returns (bool) {
+        return pi.u.isSet() && pi.uu.isSet() && pi.v.isSet() && pi.vv.isSet();
     }
 
-    function stageA(Bid01Proof[] storage pi, BigNumber.instance storage p)
-        internal
-        view
-        returns (bool)
-    {
+    function stageA(Bid01Proof[] storage pi) internal view returns (bool) {
         for (uint256 i = 0; i < pi.length; i++) {
-            if (stageA(pi[i], p) == false) return false;
+            if (stageA(pi[i]) == false) return false;
         }
         return true;
     }
 
-    function stageAIsDecByA(
-        Bid01Proof storage pi,
-        uint256 auctioneer_i,
-        BigNumber.instance storage p
-    ) internal view returns (bool) {
+    function stageAIsDecByB(Bid01Proof storage pi, uint256 bidder_i)
+        internal
+        view
+        returns (bool)
+    {
         return
-            stageA(pi, p) &&
-            pi.a.isDecByA(auctioneer_i, p) &&
-            pi.aa.isDecByA(auctioneer_i, p);
+            stageA(pi) && pi.a.isDecByA(bidder_i) && pi.aa.isDecByA(bidder_i);
     }
 
-    function stageAIsDecByA(
-        Bid01Proof[] storage pi,
-        uint256 auctioneer_i,
-        BigNumber.instance storage p
-    ) internal view returns (bool) {
+    function stageAIsDecByB(Bid01Proof[] storage pi, uint256 bidder_i)
+        internal
+        view
+        returns (bool)
+    {
         for (uint256 i = 0; i < pi.length; i++) {
-            if (stageAIsDecByA(pi[i], auctioneer_i, p) == false) return false;
+            if (stageAIsDecByB(pi[i], bidder_i) == false) return false;
         }
         return true;
     }
 
-    function stageACompleted(
-        Bid01Proof storage pi,
-        BigNumber.instance storage p
-    ) internal view returns (bool) {
+    function stageACompleted(Bid01Proof storage pi)
+        internal
+        view
+        returns (bool)
+    {
         return
-            pi.u.isSet(p) &&
-            pi.uu.isSet(p) &&
-            pi.v.isSet(p) &&
-            pi.vv.isSet(p) &&
-            pi.a.isFullDec(p) &&
-            pi.aa.isFullDec(p);
+            pi.u.isSet() &&
+            pi.uu.isSet() &&
+            pi.v.isSet() &&
+            pi.vv.isSet() &&
+            pi.a.isFullDec() &&
+            pi.aa.isFullDec();
     }
 
-    function stageACompleted(
-        Bid01Proof[] storage pi,
-        BigNumber.instance storage p
-    ) internal view returns (bool) {
+    function stageACompleted(Bid01Proof[] storage pi)
+        internal
+        view
+        returns (bool)
+    {
         for (uint256 i = 0; i < pi.length; i++) {
-            if (stageACompleted(pi[i], p) == false) return false;
+            if (stageACompleted(pi[i]) == false) return false;
         }
         return true;
     }
 
-    function setU(
-        Bid01Proof storage pi,
-        Ct memory bidU,
-        BigNumber.instance memory zInv,
-        BigNumber.instance storage p
-    ) internal {
-        require(stageU(pi, p), "Not in stageU.");
-        require(bidU.isNotDec(p), "bidU not been decrypted yet.");
-        (pi.u, pi.uu) = (bidU, bidU.mul(zInv, p));
+    function setU(Bid01Proof storage pi, Ct memory bidU) internal {
+        require(stageU(pi), "Not in stageU.");
+        require(bidU.isNotDec(), "bidU not been decrypted yet.");
+        (pi.u, pi.uu) = (bidU, bidU.divZ());
     }
 
-    function setU(
-        Bid01Proof[] storage pi,
-        Ct[] memory bidU,
-        BigNumber.instance memory zInv,
-        BigNumber.instance storage p
-    ) internal {
+    function setU(Bid01Proof[] storage pi, Ct[] memory bidU) internal {
+        require(pi.length == bidU.length, "pi, bidU must have same length.");
         for (uint256 i = 0; i < pi.length; i++) {
-            setU(pi[i], bidU[i], zInv, p);
+            setU(pi[i], bidU[i]);
         }
     }
 
@@ -145,17 +118,15 @@ library Bid01ProofLib {
         Bid01Proof storage pi,
         Ct memory ctV,
         Ct memory ctVV,
-        CtSameDLProof memory piSDL,
-        BigNumber.instance storage p,
-        BigNumber.instance storage q
+        CtSameDLProof memory piSDL
     ) internal {
-        require(stageV(pi, p), "Not in stageV.");
+        require(stageV(pi), "Not in stageV.");
         require(
-            ctV.isNotDec(p) && ctVV.isNotDec(p),
+            ctV.isNotDec() && ctVV.isNotDec(),
             "ctV and ctVV must not be decrypted yet."
         );
         require(
-            piSDL.valid(pi.u, pi.uu, ctV, ctVV, p, q),
+            piSDL.valid(pi.u, pi.uu, ctV, ctVV),
             "Same discrete log verification failed."
         );
         (pi.v, pi.vv) = (ctV, ctVV);
@@ -166,89 +137,67 @@ library Bid01ProofLib {
         Bid01Proof[] storage pi,
         Ct[] memory ctV,
         Ct[] memory ctVV,
-        CtSameDLProof[] memory piSDL,
-        BigNumber.instance storage p,
-        BigNumber.instance storage q
+        CtSameDLProof[] memory piSDL
     ) internal {
         for (uint256 i = 0; i < pi.length; i++) {
-            setV(pi[i], ctV[i], ctVV[i], piSDL[i], p, q);
+            setV(pi[i], ctV[i], ctVV[i], piSDL[i]);
         }
     }
 
     function setA(
         Bid01Proof storage pi,
-        Auctioneer storage auctioneer,
+        Bidder storage bidder,
         BigNumber.instance memory uxV,
         BigNumber.instance memory uxVInv,
-        SameDLProof memory piVSDL,
-        BigNumber.instance storage g,
-        BigNumber.instance storage p,
-        BigNumber.instance storage q
+        SameDLProof memory piVSDL
     ) internal {
-        require(stageA(pi, p), "Not in stageA.");
-        pi.a = pi.a.decrypt(auctioneer, uxV, uxVInv, piVSDL, g, p, q);
+        require(stageA(pi), "Not in stageA.");
+        pi.a = pi.a.decrypt(bidder, uxV, uxVInv, piVSDL);
     }
 
     function setA(
         Bid01Proof[] storage pi,
-        Auctioneer storage auctioneer,
+        Bidder storage bidder,
         BigNumber.instance[] memory uxV,
         BigNumber.instance[] memory uxVInv,
-        SameDLProof[] memory piVSDL,
-        BigNumber.instance storage g,
-        BigNumber.instance storage p,
-        BigNumber.instance storage q
+        SameDLProof[] memory piVSDL
     ) internal {
         for (uint256 i = 0; i < pi.length; i++) {
-            setA(pi[i], auctioneer, uxV[i], uxVInv[i], piVSDL[i], g, p, q);
+            setA(pi[i], bidder, uxV[i], uxVInv[i], piVSDL[i]);
         }
     }
 
     function setAA(
         Bid01Proof storage pi,
-        Auctioneer storage auctioneer,
+        Bidder storage bidder,
         BigNumber.instance memory uxVV,
         BigNumber.instance memory uxVVInv,
-        SameDLProof memory piVVSDL,
-        BigNumber.instance storage g,
-        BigNumber.instance storage p,
-        BigNumber.instance storage q
+        SameDLProof memory piVVSDL
     ) internal {
-        require(stageA(pi, p), "Not in stageA.");
-        pi.aa = pi.aa.decrypt(auctioneer, uxVV, uxVVInv, piVVSDL, g, p, q);
+        require(stageA(pi), "Not in stageA.");
+        pi.aa = pi.aa.decrypt(bidder, uxVV, uxVVInv, piVVSDL);
     }
 
     function setAA(
         Bid01Proof[] storage pi,
-        Auctioneer storage auctioneer,
+        Bidder storage bidder,
         BigNumber.instance[] memory uxVV,
         BigNumber.instance[] memory uxVVInv,
-        SameDLProof[] memory piVVSDL,
-        BigNumber.instance storage g,
-        BigNumber.instance storage p,
-        BigNumber.instance storage q
+        SameDLProof[] memory piVVSDL
     ) internal {
         for (uint256 i = 0; i < pi.length; i++) {
-            setAA(pi[i], auctioneer, uxVV[i], uxVVInv[i], piVVSDL[i], g, p, q);
+            setAA(pi[i], bidder, uxVV[i], uxVVInv[i], piVVSDL[i]);
         }
     }
 
-    function valid(Bid01Proof storage pi, BigNumber.instance storage p)
-        internal
-        view
-        returns (bool)
-    {
-        if (stageACompleted(pi, p) == false) return false;
-        return pi.a.c.isOne(p) || pi.aa.c.isOne(p);
+    function valid(Bid01Proof storage pi) internal view returns (bool) {
+        if (stageACompleted(pi) == false) return false;
+        return pi.a.c.isIdentityElement() || pi.aa.c.isIdentityElement();
     }
 
-    function valid(Bid01Proof[] storage pi, BigNumber.instance storage p)
-        internal
-        view
-        returns (bool)
-    {
+    function valid(Bid01Proof[] storage pi) internal view returns (bool) {
         for (uint256 i = 0; i < pi.length; i++) {
-            if (valid(pi[i], p) == false) return false;
+            if (valid(pi[i]) == false) return false;
         }
         return true;
     }

@@ -22,9 +22,7 @@ library SameDLProofLib {
         BigNumber.instance memory g1,
         BigNumber.instance memory g2,
         BigNumber.instance memory y1,
-        BigNumber.instance memory y2,
-        BigNumber.instance memory p,
-        BigNumber.instance memory q
+        BigNumber.instance memory y2
     ) internal view returns (bool) {
         bytes32 digest = keccak256(
             // pack
@@ -48,8 +46,8 @@ library SameDLProofLib {
         }
         BigNumber.instance memory c = BigNumber
             .instance(digest_packed, false, bit_length)
-            .mod(q);
-        return valid_pack(pi, g1, g2, y1, y2, p, c);
+            .modQ();
+        return valid_pack(pi, g1, g2, y1, y2, c);
     }
 
     function valid_pack(
@@ -58,13 +56,12 @@ library SameDLProofLib {
         BigNumber.instance memory g2,
         BigNumber.instance memory y1,
         BigNumber.instance memory y2,
-        BigNumber.instance memory p,
         BigNumber.instance memory c
     ) internal view returns (bool) {
-        BigNumber.instance memory tt1 = g1.pow(pi.r, p).mul(y1.pow(c, p), p);
-        bool a1 = pi.t1.equals(tt1, p);
-        BigNumber.instance memory tt2 = g2.pow(pi.r, p).mul(y2.pow(c, p), p);
-        bool a2 = pi.t2.equals(tt2, p);
+        BigNumber.instance memory tt1 = g1.pow(pi.r).mul(y1.pow(c));
+        bool a1 = pi.t1.equals(tt1);
+        BigNumber.instance memory tt2 = g2.pow(pi.r).mul(y2.pow(c));
+        bool a2 = pi.t2.equals(tt2);
         return a1 && a2;
     }
 
@@ -73,13 +70,10 @@ library SameDLProofLib {
         BigNumber.instance[] memory g1,
         BigNumber.instance[] memory g2,
         BigNumber.instance[] memory y1,
-        BigNumber.instance[] memory y2,
-        BigNumber.instance memory p,
-        BigNumber.instance memory q
+        BigNumber.instance[] memory y2
     ) internal view returns (bool) {
         for (uint256 i = 0; i < pi.length; i++) {
-            if (valid(pi[i], g1[i], g2[i], y1[i], y2[i], p, q) == false)
-                return false;
+            if (valid(pi[i], g1[i], g2[i], y1[i], y2[i]) == false) return false;
         }
         return true;
     }

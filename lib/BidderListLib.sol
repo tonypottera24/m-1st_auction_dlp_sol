@@ -32,15 +32,11 @@ library BidderListLib {
     using Bid01ProofLib for Bid01Proof;
     using Bid01ProofLib for Bid01Proof[];
 
-    event BidderListLibEvent(uint256 j0);
-
-    function add(
+    function init(
         BidderList storage bList,
         address payable addr,
         uint256 balance,
-        Ct[] memory bid,
-        BigNumber.instance storage zInv,
-        BigNumber.instance storage p
+        BigNumber.instance elgamalY
     ) internal {
         bList.list.push();
         bList.map[addr] = bList.list.length - 1;
@@ -48,28 +44,8 @@ library BidderListLib {
         bidder.index = bList.list.length - 1;
         bidder.addr = addr;
         bidder.balance = balance;
+        bidder.elgamalY = elgamalY;
         bidder.malicious = false;
-        for (uint256 j = 0; j < bid.length; j++) {
-            bidder.bid.push(bid[j]);
-            bidder.bidA.push(bid[j]);
-            bidder.bid01Proof.push();
-        }
-        bidder.bid01Proof.setU(bid, zInv, p);
-        bidder.bidProd = bid.prod(p);
-        require(bidder.bidA.length >= 2, "bidder.bidA.length < 2");
-        for (uint256 j = bidder.bidA.length - 2; j >= 0; j--) {
-            bidder.bidA[j] = bList.list[bList.list.length - 1].bidA[j].mul(
-                bList.list[bList.list.length - 1].bidA[j + 1],
-                p
-            );
-            if (j == 0) break;
-        }
-    }
-
-    function remove(BidderList storage bList, uint256 i) internal {
-        bList.list[i] = bList.list[bList.list.length - 1];
-        bList.list.pop();
-        bList.map[bList.list[i].addr] = i;
     }
 
     function get(BidderList storage bList, uint256 i)
@@ -101,12 +77,12 @@ library BidderListLib {
         return false;
     }
 
-    function removeMalicious(BidderList storage bList) internal {
-        for (uint256 i = 0; i < length(bList); i++) {
-            if (get(bList, i).malicious) {
-                remove(bList, i);
-                i--;
-            }
-        }
-    }
+    // function removeMalicious(BidderList storage bList) internal {
+    //     for (uint256 i = 0; i < length(bList); i++) {
+    //         if (get(bList, i).malicious) {
+    //             remove(bList, i);
+    //             i--;
+    //         }
+    //     }
+    // }
 }
