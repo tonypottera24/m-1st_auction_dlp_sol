@@ -1,6 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity >=0.7.0 <0.8.0;
-pragma experimental ABIEncoderV2;
+pragma solidity >=0.8.0 <0.9.0;
 
 import {Ct, CtLib} from "./CtLib.sol";
 import {Bid01Proof} from "./Bid01ProofLib.sol";
@@ -10,7 +9,7 @@ import {Bid01Proof, Bid01ProofLib} from "./Bid01ProofLib.sol";
 
 struct Bidder {
     uint256 index;
-    address payable addr;
+    address addr;
     uint256 balance;
     bool malicious;
     BigNumber.instance elgamalY;
@@ -34,9 +33,9 @@ library BidderListLib {
 
     function init(
         BidderList storage bList,
-        address payable addr,
+        address addr,
         uint256 balance,
-        BigNumber.instance elgamalY
+        BigNumber.instance memory elgamalY
     ) internal {
         bList.list.push();
         bList.map[addr] = bList.list.length - 1;

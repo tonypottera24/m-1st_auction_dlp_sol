@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
-pragma solidity >=0.7.0 <0.8.0;
-pragma experimental ABIEncoderV2;
+pragma solidity >=0.8.0 <0.9.0;
+
 import {BigNumber} from "./BigNumber.sol";
 
 library BigNumberLib {
@@ -132,12 +132,14 @@ library BigNumberLib {
         returns (bool)
     {
         if (a.bitlen == 0) return true;
-        BigNumber.instance memory b0 = BigNumber.instance(
-            hex"0000000000000000000000000000000000000000000000000000000000000000",
-            false,
-            0
-        );
+        BigNumber.instance memory b0 =
+            BigNumber.instance(
+                hex"0000000000000000000000000000000000000000000000000000000000000000",
+                false,
+                0
+            );
         return BigNumber.cmp(modP(a), modP(b0), false) == 0;
+        // return BigNumber.cmp(a, b0, false) == 0;
     }
 
     function isNotSet(BigNumber.instance[] memory a)
@@ -161,11 +163,12 @@ library BigNumberLib {
         returns (bool)
     {
         if (a.bitlen == 0) return false;
-        BigNumber.instance memory b1 = BigNumber.instance(
-            hex"0000000000000000000000000000000000000000000000000000000000000001",
-            false,
-            1
-        );
+        BigNumber.instance memory b1 =
+            BigNumber.instance(
+                hex"0000000000000000000000000000000000000000000000000000000000000001",
+                false,
+                1
+            );
         return BigNumber.cmp(modP(a), modP(b1), false) == 0;
     }
 

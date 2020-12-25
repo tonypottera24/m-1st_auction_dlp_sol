@@ -1,6 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity >=0.7.0 <0.8.0;
-pragma experimental ABIEncoderV2;
+pragma solidity >=0.8.0 <0.9.0;
 
 import {Bidder, BidderList, BidderListLib} from "./BidderListLib.sol";
 import {BigNumber} from "./BigNumber.sol";
@@ -19,29 +18,42 @@ library CtLib {
     using SameDLProofLib for SameDLProof;
     using SameDLProofLib for SameDLProof[];
 
-    function isSet(Ct memory ct) internal pure returns (bool) {
+    function set(Ct storage ct1, Ct memory ct2) internal {
+        for (uint256 i = 0; i < ct2.u.length; i++) {
+            ct1.u[i] = ct2.u[i];
+        }
+        ct1.c = ct2.c;
+    }
+
+    function set(Ct[] storage ct1, Ct[] memory ct2) internal {
+        for (uint256 i = 0; i < ct2.length; i++) {
+            set(ct1[i], ct2[i]);
+        }
+    }
+
+    function isSet(Ct memory ct) internal view returns (bool) {
         return ct.c.isSet();
     }
 
-    function isNotSet(Ct memory ct) internal pure returns (bool) {
+    function isNotSet(Ct memory ct) internal view returns (bool) {
         return isSet(ct) == false;
     }
 
-    function isNotSet(Ct[] memory ct) internal pure returns (bool) {
+    function isNotSet(Ct[] memory ct) internal view returns (bool) {
         for (uint256 i = 0; i < ct.length; i++) {
             if (isNotSet(ct[i]) == false) return false;
         }
         return true;
     }
 
-    function isNotDec(Ct memory ct) internal pure returns (bool) {
+    function isNotDec(Ct memory ct) internal view returns (bool) {
         for (uint256 i = 0; i < ct.u.length; i++) {
             if (ct.u[i].isNotSet() == true) return false;
         }
         return true;
     }
 
-    function isNotDec(Ct[] memory ct) internal pure returns (bool) {
+    function isNotDec(Ct[] memory ct) internal view returns (bool) {
         for (uint256 i = 0; i < ct.length; i++) {
             if (isNotDec(ct[i]) == false) return false;
         }
@@ -80,7 +92,7 @@ library CtLib {
 
     function mul(Ct memory ct1, Ct memory ct2)
         internal
-        pure
+        view
         returns (Ct memory)
     {
         return Ct(ct1.u.mul(ct2.u), ct1.c.mul(ct2.c));
@@ -119,17 +131,18 @@ library CtLib {
         SameDLProof memory pi
     ) internal view returns (Ct memory) {
         require(ux.mul(uxInv).isIdentityElement(), "uxInv is not ux's inverse");
-        BigNumber.instance memory b0 = BigNumber.instance(
-            hex"0000000000000000000000000000000000000000000000000000000000000000",
-            false,
-            0
-        );
+        BigNumber.instance memory b0 =
+            BigNumber.instance(
+                hex"0000000000000000000000000000000000000000000000000000000000000000",
+                false,
+                0
+            );
         require(
             ct.u[bidder.index].isNotSet() == false,
             "ct.u[bidder.index] should not be zero."
         );
         require(
-            pi.valid(ct.u[bidder.index], ux, bidder.elgamalY),
+            pi.valid(ct.u[bidder.index], BigNumberLib.g(), ux, bidder.elgamalY),
             "Same discrete log verification failed."
         );
         ct.u[bidder.index] = b0;
