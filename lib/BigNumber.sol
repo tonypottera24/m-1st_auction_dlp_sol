@@ -1,7 +1,9 @@
 // SPDX-License-Identifier: MIT
 // Forked from https://github.com/zcoinofficial/solidity-BigNumber
 // pragma solidity >=0.4.20 <0.6;
-pragma solidity >=0.8.0 <0.9.0;
+pragma solidity >=0.7.0 <0.8.0;
+
+// pragma experimental ABIEncoderV2;
 
 library BigNumber {
     /*
@@ -561,10 +563,10 @@ library BigNumber {
         bitlen = get_word_length(bitlen) + (((_result.length / 32) - 1) * 256);
 
         result.val = _result;
-        // result.neg = (base.neg == false || (base.neg && is_odd(exponent) == 0))
-        //     ? false
-        //     : true; //TODO review this.
-        // result.bitlen = bitlen;
+        result.neg = (base.neg == false || (base.neg && is_odd(exponent) == 0))
+            ? false
+            : true; //TODO review this.
+        result.bitlen = bitlen;
         return result;
     }
 

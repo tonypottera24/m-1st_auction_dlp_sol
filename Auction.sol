@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: MIT
-pragma solidity >=0.8.0 <0.9.0;
+pragma solidity >=0.7.0 <0.8.0;
+pragma experimental ABIEncoderV2;
 
 import {BigNumber} from "./lib/BigNumber.sol";
 import {BigNumberLib} from "./lib/BigNumberLib.sol";
@@ -147,15 +148,28 @@ contract Auction {
         view
         returns (BigNumber.instance memory)
     {
-        BigNumber.instance memory b0 = BigNumber.instance(hex"0000000000000000000000000000000000000000000000000000000000000000", false, 0);
+        BigNumber.instance memory b0 =
+            BigNumber.instance(
+                hex"0000000000000000000000000000000000000000000000000000000000000000",
+                false,
+                0
+            );
         return b0.modP();
+    }
+
+    function mulTest(BigNumber.instance memory a, BigNumber.instance memory b)
+        public
+        view
+        returns (BigNumber.instance memory)
+    {
+        return a.mul(b);
     }
 
     constructor(
         uint256[] memory _price,
         uint256[6] memory duration,
         uint256 _balanceLimit
-    ) {
+    ) public {
         sellerAddr = msg.sender;
         require(_price.length != 0, "Price list length must not be 0.");
         price = _price;
@@ -181,15 +195,15 @@ contract Auction {
         require(isPhase1(), "Phase 0 not completed yet.");
         require(timer[0].timesUp() == false, "Phase 1 time's up.");
         require(elgamalY.isNotSet() == false, "elgamalY must not be zero");
-        // require(
-        //     pi.valid(BigNumberLib.g(), elgamalY),
-        //     "Discrete log proof invalid."
-        // );
-        // require(
-        //     msg.value >= bidderBalanceLimit,
-        //     "Bidder's deposit must larger than bidderBalanceLimit."
-        // );
-        // bList.init(msg.sender, msg.value, elgamalY);
+        require(
+            pi.valid(BigNumberLib.g(), elgamalY),
+            "Discrete log proof invalid."
+        );
+        require(
+            msg.value >= bidderBalanceLimit,
+            "Bidder's deposit must larger than bidderBalanceLimit."
+        );
+        bList.init(msg.sender, msg.value, elgamalY);
     }
 
     function phase1Success() public view returns (bool) {
@@ -230,7 +244,6 @@ contract Auction {
         }
         bidder.bid01Proof.setU(bid);
         bidder.bidProd.set(bid.prod());
-        require(bidder.bidA.length >= 2, "bidder.bidA.length < 2");
         for (uint256 j = bidder.bidA.length - 2; j >= 0; j--) {
             bidder.bidA[j].set(bidder.bidA[j].mul(bidder.bidA[j + 1]));
             if (j == 0) break; // j is unsigned. it will never be negative
@@ -351,9 +364,7 @@ contract Auction {
             if (
                 bList.get(i).bidProd.isFullDec() == false ||
                 bList.get(i).bidProd.c.equals(BigNumberLib.z()) == false ||
-                bList.get(i).bid01Proof.length == 0 ||
-                (bList.get(i).bid01Proof.length > 0 &&
-                    bList.get(i).bid01Proof.valid() == false)
+                bList.get(i).bid01Proof.valid() == false
             ) return false;
         }
         return true;

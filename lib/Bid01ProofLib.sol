@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: MIT
-pragma solidity >=0.8.0 <0.9.0;
+pragma solidity >=0.7.0 <0.8.0;
+pragma experimental ABIEncoderV2;
 
 import {BigNumber} from "./BigNumber.sol";
 import {BigNumberLib} from "./BigNumberLib.sol";
@@ -36,8 +37,8 @@ library Bid01ProofLib {
 
     function stageV(Bid01Proof storage pi) internal view returns (bool) {
         return
-            pi.u.isSet() &&
-            pi.uu.isSet() &&
+            pi.u.isNotSet() == false &&
+            pi.uu.isNotSet() == false &&
             pi.v.isNotSet() &&
             pi.vv.isNotSet() &&
             pi.a.isNotSet() &&
@@ -45,7 +46,11 @@ library Bid01ProofLib {
     }
 
     function stageA(Bid01Proof storage pi) internal view returns (bool) {
-        return pi.u.isSet() && pi.uu.isSet() && pi.v.isSet() && pi.vv.isSet();
+        return
+            pi.u.isNotSet() == false &&
+            pi.uu.isNotSet() == false &&
+            pi.v.isNotSet() == false &&
+            pi.vv.isNotSet() == false;
     }
 
     function stageA(Bid01Proof[] storage pi) internal view returns (bool) {
@@ -81,10 +86,10 @@ library Bid01ProofLib {
         returns (bool)
     {
         return
-            pi.u.isSet() &&
-            pi.uu.isSet() &&
-            pi.v.isSet() &&
-            pi.vv.isSet() &&
+            pi.u.isNotSet() == false &&
+            pi.uu.isNotSet() == false &&
+            pi.v.isNotSet() == false &&
+            pi.vv.isNotSet() == false &&
             pi.a.isFullDec() &&
             pi.aa.isFullDec();
     }

@@ -1,10 +1,19 @@
 // SPDX-License-Identifier: MIT
-pragma solidity >=0.8.0 <0.9.0;
-
+pragma solidity >=0.7.0 <0.8.0;
+pragma experimental ABIEncoderV2;
 import {BigNumber} from "./BigNumber.sol";
 
 library BigNumberLib {
-    uint256 public constant bitLength = 1024;
+    uint256 public constant bitLength = 3072;
+
+    function zero() internal pure returns (BigNumber.instance memory) {
+        return
+            BigNumber.instance(
+                hex"0000000000000000000000000000000000000000000000000000000000000000",
+                false,
+                0
+            );
+    }
 
     function p() internal pure returns (BigNumber.instance memory) {
         if (bitLength == 1024) {
@@ -132,14 +141,7 @@ library BigNumberLib {
         returns (bool)
     {
         if (a.bitlen == 0) return true;
-        BigNumber.instance memory b0 =
-            BigNumber.instance(
-                hex"0000000000000000000000000000000000000000000000000000000000000000",
-                false,
-                0
-            );
-        return BigNumber.cmp(modP(a), modP(b0), false) == 0;
-        // return BigNumber.cmp(a, b0, false) == 0;
+        return BigNumber.cmp(modP(a), zero(), false) == 0;
     }
 
     function isNotSet(BigNumber.instance[] memory a)
@@ -148,7 +150,7 @@ library BigNumberLib {
         returns (bool)
     {
         for (uint256 i = 0; i < a.length; i++) {
-            if (isNotSet(a) == false) return false;
+            if (isNotSet(a[i]) == false) return false;
         }
         return true;
     }
@@ -197,8 +199,8 @@ library BigNumberLib {
         view
         returns (BigNumber.instance memory)
     {
-        if (isNotSet(a) || isIdentityElement(a)) return b;
-        if (isNotSet(b) || isIdentityElement(b)) return a;
+        // if (isNotSet(a) || isIdentityElement(a)) return b;
+        // if (isNotSet(b) || isIdentityElement(b)) return a;
         return BigNumber.modmul(modP(a), modP(b), p());
     }
 

@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: MIT
-pragma solidity >=0.8.0 <0.9.0;
+pragma solidity >=0.7.0 <0.8.0;
+pragma experimental ABIEncoderV2;
 
 import {Bidder, BidderList, BidderListLib} from "./BidderListLib.sol";
 import {BigNumber} from "./BigNumber.sol";
@@ -20,23 +21,20 @@ library CtLib {
 
     function set(Ct storage ct1, Ct memory ct2) internal {
         for (uint256 i = 0; i < ct2.u.length; i++) {
+            if (ct1.u.length < i + 1) ct1.u.push();
             ct1.u[i] = ct2.u[i];
         }
         ct1.c = ct2.c;
     }
 
-    function set(Ct[] storage ct1, Ct[] memory ct2) internal {
-        for (uint256 i = 0; i < ct2.length; i++) {
-            set(ct1[i], ct2[i]);
-        }
-    }
-
-    function isSet(Ct memory ct) internal view returns (bool) {
-        return ct.c.isSet();
-    }
+    // function set(Ct[] storage ct1, Ct[] memory ct2) internal {
+    //     for (uint256 i = 0; i < ct2.length; i++) {
+    //         set(ct1[i], ct2[i]);
+    //     }
+    // }
 
     function isNotSet(Ct memory ct) internal view returns (bool) {
-        return isSet(ct) == false;
+        return ct.u.isNotSet() && ct.c.isNotSet();
     }
 
     function isNotSet(Ct[] memory ct) internal view returns (bool) {
@@ -131,12 +129,6 @@ library CtLib {
         SameDLProof memory pi
     ) internal view returns (Ct memory) {
         require(ux.mul(uxInv).isIdentityElement(), "uxInv is not ux's inverse");
-        BigNumber.instance memory b0 =
-            BigNumber.instance(
-                hex"0000000000000000000000000000000000000000000000000000000000000000",
-                false,
-                0
-            );
         require(
             ct.u[bidder.index].isNotSet() == false,
             "ct.u[bidder.index] should not be zero."
@@ -145,7 +137,7 @@ library CtLib {
             pi.valid(ct.u[bidder.index], BigNumberLib.g(), ux, bidder.elgamalY),
             "Same discrete log verification failed."
         );
-        ct.u[bidder.index] = b0;
+        ct.u[bidder.index] = BigNumberLib.zero();
         return Ct(ct.u, ct.c.mul(uxInv));
     }
 
