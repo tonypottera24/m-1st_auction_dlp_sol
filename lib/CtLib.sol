@@ -1,247 +1,156 @@
 // SPDX-License-Identifier: MIT
-pragma solidity >=0.4.22 <0.7.0;
+pragma solidity >=0.7.0 <0.8.0;
 pragma experimental ABIEncoderV2;
 
+import {Bidder, BidderList, BidderListLib} from "./BidderListLib.sol";
 import {BigNumber} from "./BigNumber.sol";
 import {BigNumberLib} from "./BigNumberLib.sol";
-import {Auctioneer} from "./AuctioneerListLib.sol";
 // import {UIntLib} from "./UIntLib.sol";
 import {SameDLProof, SameDLProofLib} from "./SameDLProofLib.sol";
 
 struct Ct {
-    // Ciphertext
-    BigNumber.instance u1;
-    BigNumber.instance u2;
+    BigNumber.instance[] u;
     BigNumber.instance c;
 }
 
 library CtLib {
     using BigNumberLib for BigNumber.instance;
+    using BigNumberLib for BigNumber.instance[];
     using SameDLProofLib for SameDLProof;
     using SameDLProofLib for SameDLProof[];
 
-    function isSet(Ct memory ct, BigNumber.instance storage p)
+    function set(Ct storage ct1, Ct memory ct2) internal {
+        for (uint256 i = 0; i < ct2.u.length; i++) {
+            if (ct1.u.length < i + 1) ct1.u.push();
+            ct1.u[i] = ct2.u[i];
+        }
+        ct1.c = ct2.c;
+    }
+
+    // function set(Ct[] storage ct1, Ct[] memory ct2) internal {
+    //     for (uint256 i = 0; i < ct2.length; i++) {
+    //         set(ct1[i], ct2[i]);
+    //     }
+    // }
+
+    function isNotSet(Ct memory ct) internal view returns (bool) {
+        return ct.u.isNotSet() && ct.c.isNotSet();
+    }
+
+    function isNotSet(Ct[] memory ct) internal view returns (bool) {
+        for (uint256 i = 0; i < ct.length; i++) {
+            if (isNotSet(ct[i]) == false) return false;
+        }
+        return true;
+    }
+
+    function isNotDec(Ct memory ct) internal view returns (bool) {
+        for (uint256 i = 0; i < ct.u.length; i++) {
+            if (ct.u[i].isNotSet() == true) return false;
+        }
+        return true;
+    }
+
+    function isNotDec(Ct[] memory ct) internal view returns (bool) {
+        for (uint256 i = 0; i < ct.length; i++) {
+            if (isNotDec(ct[i]) == false) return false;
+        }
+        return true;
+    }
+
+    function isDecByB(Ct memory ct, uint256 bidder_i)
         internal
         view
         returns (bool)
     {
-        return
-            ct.u1.isZero(p) == false ||
-            ct.u2.isZero(p) == false ||
-            ct.c.isZero(p) == false;
+        return ct.u[bidder_i].isNotSet();
     }
 
-    function isNotSet(Ct memory ct, BigNumber.instance storage p)
-        internal
-        view
-        returns (bool)
-    {
-        return ct.u1.isZero(p) && ct.u2.isZero(p) && ct.c.isZero(p);
-    }
-
-    function isNotSet(Ct[] memory ct, BigNumber.instance storage p)
+    function isDecByB(Ct[] memory ct, uint256 bidder_i)
         internal
         view
         returns (bool)
     {
         for (uint256 i = 0; i < ct.length; i++) {
-            if (isNotSet(ct[i], p) == false) return false;
+            if (isDecByB(ct[i], bidder_i) == false) return false;
         }
         return true;
     }
 
-    function isNotDec(Ct memory ct, BigNumber.instance storage p)
-        internal
-        view
-        returns (bool)
-    {
-        return
-            ct.u1.isZero(p) == false &&
-            ct.u2.isZero(p) == false &&
-            ct.c.isZero(p) == false;
+    function isFullDec(Ct memory ct) internal view returns (bool) {
+        return ct.u.isNotSet();
     }
 
-    function isNotDec(Ct[] memory ct, BigNumber.instance storage p)
-        internal
-        view
-        returns (bool)
-    {
+    function isFullDec(Ct[] memory ct) internal view returns (bool) {
         for (uint256 i = 0; i < ct.length; i++) {
-            if (isNotDec(ct[i], p) == false) return false;
+            if (isFullDec(ct[i]) == false) return false;
         }
         return true;
     }
 
-    function isPartialDec(Ct memory ct, BigNumber.instance storage p)
+    function mul(Ct memory ct1, Ct memory ct2)
         internal
         view
-        returns (bool)
+        returns (Ct memory)
     {
-        return
-            ((ct.u1.isZero(p) == false && ct.u2.isZero(p)) ||
-                (ct.u1.isZero(p) && ct.u2.isZero(p) == false)) &&
-            ct.c.isZero(p) == false;
+        return Ct(ct1.u.mul(ct2.u), ct1.c.mul(ct2.c));
     }
 
-    function isPartialDec(Ct[] memory ct, BigNumber.instance storage p)
-        internal
-        view
-        returns (bool)
-    {
-        for (uint256 i = 0; i < ct.length; i++) {
-            if (isPartialDec(ct[i], p) == false) return false;
-        }
-        return true;
+    function divZ(Ct memory ct) internal view returns (Ct memory) {
+        return Ct(ct.u, ct.c.mul(BigNumberLib.zInv()));
     }
 
-    function isDecByA(
-        Ct memory ct,
-        uint256 i,
-        BigNumber.instance storage p
-    ) internal view returns (bool) {
-        require(i == 0 || i == 1, "i can only be 0 or 1.");
-        if (i == 0) return ct.u1.isZero(p);
-        else return ct.u2.isZero(p);
-    }
-
-    function isDecByA(
-        Ct[] memory ct,
-        uint256 auctioneer_i,
-        BigNumber.instance storage p
-    ) internal view returns (bool) {
-        for (uint256 i = 0; i < ct.length; i++) {
-            if (isDecByA(ct[i], auctioneer_i, p) == false) return false;
-        }
-        return true;
-    }
-
-    function isFullDec(Ct memory ct, BigNumber.instance storage p)
-        internal
-        view
-        returns (bool)
-    {
-        return ct.u1.isZero(p) && ct.u2.isZero(p);
-    }
-
-    function isFullDec(Ct[] memory ct, BigNumber.instance storage p)
-        internal
-        view
-        returns (bool)
-    {
-        for (uint256 i = 0; i < ct.length; i++) {
-            if (isFullDec(ct[i], p) == false) return false;
-        }
-        return true;
-    }
-
-    function mul(
-        Ct memory ct1,
-        Ct memory ct2,
-        BigNumber.instance storage p
-    ) internal view returns (Ct memory) {
-        Ct memory result = Ct(
-            ct1.u1.mul(ct2.u1, p),
-            ct1.u2.mul(ct2.u2, p),
-            ct1.c.mul(ct2.c, p)
-        );
-        if (ct1.u1.isZero(p)) result.u1 = ct2.u1;
-        if (ct2.u1.isZero(p)) result.u1 = ct1.u1;
-        if (ct1.u2.isZero(p)) result.u2 = ct2.u2;
-        if (ct2.u2.isZero(p)) result.u2 = ct1.u2;
-        return result;
-    }
-
-    function mul(
-        Ct memory ct,
-        BigNumber.instance memory z,
-        BigNumber.instance storage p
-    ) internal view returns (Ct memory) {
-        return Ct(ct.u1, ct.u2, ct.c.mul(z, p));
-    }
-
-    function mul(
-        Ct[] memory ct,
-        BigNumber.instance storage z,
-        BigNumber.instance storage p
-    ) internal view returns (Ct[] memory) {
+    function divZ(Ct[] memory ct) internal view returns (Ct[] memory) {
         Ct[] memory result = new Ct[](ct.length);
         for (uint256 i = 0; i < ct.length; i++) {
-            result[i] = mul(ct[i], z, p);
+            result[i] = divZ(ct[i]);
         }
         return result;
     }
 
-    function equals(
-        Ct memory ct1,
-        Ct memory ct2,
-        BigNumber.instance storage p
-    ) internal view returns (bool) {
-        return
-            ct1.u1.equals(ct2.u1, p) &&
-            ct1.u2.equals(ct2.u2, p) &&
-            ct1.c.equals(ct2.c, p);
+    function equals(Ct memory ct1, Ct memory ct2) internal view returns (bool) {
+        return ct1.u.equals(ct2.u) && ct1.c.equals(ct2.c);
     }
 
-    function prod(Ct[] memory ct, BigNumber.instance storage p)
-        internal
-        view
-        returns (Ct memory result)
-    {
+    function prod(Ct[] memory ct) internal view returns (Ct memory result) {
         if (ct.length > 0) {
             result = ct[0];
             for (uint256 i = 1; i < ct.length; i++) {
-                result = mul(result, ct[i], p);
+                result = mul(result, ct[i]);
             }
         }
     }
 
     function decrypt(
         Ct memory ct,
-        Auctioneer storage a,
+        Bidder storage bidder,
         BigNumber.instance memory ux,
         BigNumber.instance memory uxInv,
-        SameDLProof memory pi,
-        BigNumber.instance storage g,
-        BigNumber.instance storage p,
-        BigNumber.instance storage q
+        SameDLProof memory pi
     ) internal view returns (Ct memory) {
-        require(ux.mul(uxInv, p).isOne(p), "uxInv is not ux's inverse");
-        BigNumber.instance memory b0 = BigNumber.instance(
-            hex"0000000000000000000000000000000000000000000000000000000000000000",
-            false,
-            0
+        require(ux.mul(uxInv).isIdentityElement(), "uxInv is not ux's inverse");
+        require(
+            ct.u[bidder.index].isNotSet() == false,
+            "ct.u[bidder.index] should not be zero."
         );
-        require(a.index == 0 || a.index == 1, "a.index can only be 0 or 1");
-        if (a.index == 0) {
-            require(ct.u1.isZero(p) == false, "ct.u1 should not be zero.");
-            require(
-                pi.valid(ct.u1, g, ux, a.elgamalY, p, q),
-                "Same discrete log verification failed."
-            );
-            return Ct(b0, ct.u2, ct.c.mul(uxInv, p));
-        } else {
-            require(ct.u2.isZero(p) == false, "ct.u2 should not be zero.");
-            require(
-                pi.valid(ct.u2, g, ux, a.elgamalY, p, q),
-                "Same discrete log verification failed."
-            );
-            return Ct(ct.u1, b0, ct.c.mul(uxInv, p));
-        }
+        require(
+            pi.valid(ct.u[bidder.index], BigNumberLib.g(), ux, bidder.elgamalY),
+            "Same discrete log verification failed."
+        );
+        ct.u[bidder.index] = BigNumberLib.zero();
+        return Ct(ct.u, ct.c.mul(uxInv));
     }
 
     function decrypt(
         Ct[] memory ct,
-        Auctioneer storage a,
+        Bidder storage bidder,
         BigNumber.instance[] memory ux,
         BigNumber.instance[] memory uxInv,
-        SameDLProof[] memory pi,
-        BigNumber.instance storage g,
-        BigNumber.instance storage p,
-        BigNumber.instance storage q
+        SameDLProof[] memory pi
     ) internal view returns (Ct[] memory) {
         Ct[] memory result = new Ct[](ct.length);
         for (uint256 i = 0; i < ct.length; i++) {
-            result[i] = decrypt(ct[i], a, ux[i], uxInv[i], pi[i], g, p, q);
+            result[i] = decrypt(ct[i], bidder, ux[i], uxInv[i], pi[i]);
         }
         return result;
     }
