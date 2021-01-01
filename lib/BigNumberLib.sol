@@ -199,8 +199,6 @@ library BigNumberLib {
         view
         returns (BigNumber.instance memory)
     {
-        // if (isNotSet(a) || isIdentityElement(a)) return b;
-        // if (isNotSet(b) || isIdentityElement(b)) return a;
         return BigNumber.modmul(modP(a), modP(b), p());
     }
 

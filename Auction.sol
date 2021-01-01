@@ -2,6 +2,7 @@
 pragma solidity >=0.7.0 <0.8.0;
 pragma experimental ABIEncoderV2;
 
+import {BoolLib} from "./lib/BoolLib.sol";
 import {BigNumber} from "./lib/BigNumber.sol";
 import {BigNumberLib} from "./lib/BigNumberLib.sol";
 import {Bidder, BidderList, BidderListLib} from "./lib/BidderListLib.sol";
@@ -13,6 +14,7 @@ import {Bid01Proof, Bid01ProofLib} from "./lib/Bid01ProofLib.sol";
 import {Timer, TimerLib} from "./lib/TimerLib.sol";
 
 contract Auction {
+    using BoolLib for bool[];
     using BigNumberLib for BigNumber.instance;
     using BidderListLib for BidderList;
     using CtLib for Ct;
@@ -60,8 +62,8 @@ contract Auction {
         Ct[] memory ctU = new Ct[](bList.get(index).bid01Proof.length);
         Ct[] memory ctUU = new Ct[](bList.get(index).bid01Proof.length);
         for (uint256 j = 0; j < bList.get(index).bid01Proof.length; j++) {
-            ctU[j] = bList.get(index).bid01Proof[j].u;
-            ctUU[j] = bList.get(index).bid01Proof[j].uu;
+            ctU[j] = bList.get(index).bid01Proof[j].ctU;
+            ctUU[j] = bList.get(index).bid01Proof[j].ctUU;
         }
         return (ctU, ctUU);
     }
@@ -74,42 +76,43 @@ contract Auction {
         Ct[] memory ctV = new Ct[](bList.get(index).bid01Proof.length);
         Ct[] memory ctVV = new Ct[](bList.get(index).bid01Proof.length);
         for (uint256 j = 0; j < bList.get(index).bid01Proof.length; j++) {
-            ctV[j] = bList.get(index).bid01Proof[j].v;
-            ctVV[j] = bList.get(index).bid01Proof[j].vv;
+            ctV[j] = bList.get(index).bid01Proof[j].ctV;
+            ctVV[j] = bList.get(index).bid01Proof[j].ctVV;
         }
         return (ctV, ctVV);
     }
 
     Ct[] bidC;
     Bid01Proof[] bidC01Proof;
+    bool[] hasDecBidC01Proof;
 
     function getBidC01ProofU() public view returns (Ct[] memory, Ct[] memory) {
         Ct[] memory ctU = new Ct[](bidC01Proof.length);
         Ct[] memory ctUU = new Ct[](bidC01Proof.length);
         for (uint256 j = 0; j < bidC01Proof.length; j++) {
-            ctU[j] = bidC01Proof[j].u;
-            ctUU[j] = bidC01Proof[j].uu;
+            ctU[j] = bidC01Proof[j].ctU;
+            ctUU[j] = bidC01Proof[j].ctUU;
         }
         return (ctU, ctUU);
     }
 
     function getBidC01ProofJV() public view returns (Ct memory, Ct memory) {
         return (
-            bidC01Proof[secondHighestBidPriceJ].v,
-            bidC01Proof[secondHighestBidPriceJ].vv
+            bidC01Proof[secondHighestPriceJ].ctV,
+            bidC01Proof[secondHighestPriceJ].ctVV
         );
     }
 
     function getBidA() public view returns (Ct[] memory) {
         Ct[] memory result = new Ct[](bList.length());
         for (uint256 i = 0; i < bList.length(); i++) {
-            result[i] = bList.get(i).bidA[secondHighestBidPriceJ + 1];
+            result[i] = bList.get(i).bidA[secondHighestPriceJ + 1];
         }
         return result;
     }
 
     uint256 public binarySearchL;
-    uint256 public secondHighestBidPriceJ;
+    uint256 public secondHighestPriceJ;
     uint256 public binarySearchR;
     uint256 public winnerI;
 
@@ -174,7 +177,7 @@ contract Auction {
         require(_price.length != 0, "Price list length must not be 0.");
         price = _price;
         binarySearchR = price.length;
-        secondHighestBidPriceJ = (binarySearchL + binarySearchR) / 2;
+        secondHighestPriceJ = (binarySearchL + binarySearchR) / 2;
         for (uint256 i = 0; i < 6; i++) {
             require(duration[i] > 0, "Timer duration must larger than zero.");
             timer[i].duration = duration[i];
@@ -234,18 +237,15 @@ contract Auction {
             bid.length == price.length,
             "Bid list's length must equals to bid price list's length."
         );
-        require(bid.isNotDec(), "bid is not well encrypted.");
+        require(bid.isNotSet() == false, "bid is not set.");
         for (uint256 j = 0; j < bid.length; j++) {
-            bidder.bid.push();
-            bidder.bid[j].set(bid[j]);
-            bidder.bidA.push();
-            bidder.bidA[j].set(bid[j]);
+            bidder.bidA.push(bid[j]);
             bidder.bid01Proof.push();
         }
         bidder.bid01Proof.setU(bid);
-        bidder.bidProd.set(bid.prod());
+        bidder.bidProd = bid.prod();
         for (uint256 j = bidder.bidA.length - 2; j >= 0; j--) {
-            bidder.bidA[j].set(bidder.bidA[j].mul(bidder.bidA[j + 1]));
+            bidder.bidA[j] = bidder.bidA[j].mul(bidder.bidA[j + 1]);
             if (j == 0) break; // j is unsigned. it will never be negative
         }
         if (phase2Success()) timer[2].start = block.timestamp;
@@ -253,7 +253,7 @@ contract Auction {
 
     function phase2Success() public view returns (bool) {
         for (uint256 i = 0; i < bList.length(); i++) {
-            if (bList.get(i).bid.length != price.length) return false;
+            if (bList.get(i).bidA.length != price.length) return false;
         }
         return true;
     }
@@ -263,7 +263,7 @@ contract Auction {
         require(isPhase2(), "Phase 2 completed successfully.");
         require(timer[1].timesUp(), "Phase 2 still have time to complete.");
         for (uint256 i = 0; i < bList.length(); i++) {
-            if (bList.get(i).bid.length != price.length)
+            if (bList.get(i).bidA.length != price.length)
                 bList.get(i).malicious = true;
         }
         compensateBidderMalicious();
@@ -289,15 +289,19 @@ contract Auction {
             "Length of bList, ux, pi must be same."
         );
         Bidder storage bidder = bList.find(msg.sender);
+        require(
+            bidder.hasDecBidProd == false,
+            "BidProd has already been decrypted."
+        );
         for (uint256 i = 0; i < bList.length(); i++) {
-            require(
-                bList.get(i).bidProd.isFullDec() == false,
-                "Ct has already been decrypted."
-            );
-            bList.get(i).bidProd.set(
-                bList.get(i).bidProd.decrypt(bidder, ux[i], uxInv[i], pi[i])
+            bList.get(i).bidProd = bList.get(i).bidProd.decrypt(
+                bidder,
+                ux[i],
+                uxInv[i],
+                pi[i]
             );
         }
+        bidder.hasDecBidProd = true;
         if (phase3Success()) {
             phase4Prepare();
             timer[3].start = block.timestamp;
@@ -345,14 +349,26 @@ contract Auction {
             "Length of bList, uxV, uxVV, pi must be same."
         );
         Bidder storage bidder = bList.find(msg.sender);
+        require(
+            bidder.hasDecBid01Proof == false,
+            "Bid01Proof has already been decrypted."
+        );
         for (uint256 i = 0; i < bList.length(); i++) {
             require(
                 bList.get(i).bid01Proof.length > 0,
                 "bList.get(i).bid01Proof is empty."
             );
-            bList.get(i).bid01Proof.setA(bidder, uxV[i], uxVInv[i], piV[i]);
-            bList.get(i).bid01Proof.setAA(bidder, uxVV[i], uxVVInv[i], piVV[i]);
+            bList.get(i).bid01Proof.setA(
+                bidder,
+                uxV[i],
+                uxVInv[i],
+                piV[i],
+                uxVV[i],
+                uxVVInv[i],
+                piVV[i]
+            );
         }
+        bidder.hasDecBid01Proof = true;
         if (phase3Success()) {
             phase4Prepare();
             timer[3].start = block.timestamp;
@@ -360,9 +376,10 @@ contract Auction {
     }
 
     function phase3Success() public view returns (bool) {
+        if (bList.hasDecBidProd() == false) return false;
+        if (bList.hasDecBid01Proof() == false) return false;
         for (uint256 i = 0; i < bList.length(); i++) {
             if (
-                bList.get(i).bidProd.isFullDec() == false ||
                 bList.get(i).bidProd.c.equals(BigNumberLib.z()) == false ||
                 bList.get(i).bid01Proof.valid() == false
             ) return false;
@@ -375,27 +392,31 @@ contract Auction {
         require(isPhase3(), "Phase 3 completed successfully.");
         require(timer[2].timesUp(), "Phase 3 still have time to complete.");
         for (uint256 i = 0; i < bList.length(); i++) {
-            for (uint256 j = 0; j < bList.length(); j++) {
-                if (bList.get(i).bidProd.isDecByB(j) == false) {
-                    bList.get(j).malicious = true;
-                }
-                if (bList.get(i).bid01Proof.stageA() == false)
-                    bList.get(0).malicious = true;
-                else {
-                    if (bList.get(i).bid01Proof.stageAIsDecByB(j) == false) {
-                        bList.get(j).malicious = true;
-                    }
-                }
+            if (bList.get(i).hasDecBidProd == false) {
+                bList.get(i).malicious = true;
             }
         }
         for (uint256 i = 0; i < bList.length(); i++) {
-            assert(bList.get(i).bidProd.isFullDec());
-            if (bList.get(i).bidProd.c.equals(BigNumberLib.z()) == false) {
-                bList.get(i).malicious = true;
+            if (bList.get(i).bid01Proof.stageA() == false) {
+                bList.get(0).malicious = true;
             }
-            assert(bList.get(i).bid01Proof.stageACompleted());
-            if (bList.get(i).bid01Proof.valid() == false)
-                bList.get(i).malicious = true;
+        }
+        if (bList.get(0).malicious == false) {
+            for (uint256 i = 0; i < bList.length(); i++) {
+                if (bList.get(i).hasDecBid01Proof == false) {
+                    bList.get(i).malicious = true;
+                }
+            }
+        }
+        if (bList.malicious() == false) {
+            for (uint256 i = 0; i < bList.length(); i++) {
+                if (bList.get(i).bidProd.c.equals(BigNumberLib.z()) == false) {
+                    bList.get(i).malicious = true;
+                }
+                if (bList.get(i).bid01Proof.valid() == false) {
+                    bList.get(i).malicious = true;
+                }
+            }
         }
         compensateBidderMalicious();
         auctionAborted = true;
@@ -408,11 +429,11 @@ contract Auction {
             for (uint256 i = 1; i < bList.length(); i++) {
                 ct = ct.mul(bList.get(i).bidA[j]);
             }
-            bidC.push();
-            bidC[j].set(ct);
+            bidC.push(ct);
             bidC01Proof.push();
         }
         bidC01Proof.setU(bidC);
+        hasDecBidC01Proof = new bool[](bList.length());
     }
 
     function isPhase4() internal view returns (bool) {
@@ -454,17 +475,31 @@ contract Auction {
         require(isPhase4(), "Phase 4 not completed yet.");
         require(timer[3].timesUp() == false, "Phase 4 time's up.");
         Bidder storage bidder = bList.find(msg.sender);
-        bidC01Proof[secondHighestBidPriceJ].setA(bidder, uxV, uxVInv, piV);
-        bidC01Proof[secondHighestBidPriceJ].setAA(bidder, uxVV, uxVVInv, piVV);
+        require(
+            hasDecBidC01Proof[bidder.index] == false,
+            "bidder has dec BidC01Proof."
+        );
+        bidC01Proof[secondHighestPriceJ].setA(
+            bidder,
+            uxV,
+            uxVInv,
+            piV,
+            uxVV,
+            uxVVInv,
+            piVV
+        );
+        hasDecBidC01Proof[bidder.index] = true;
 
-        if (bidC01Proof[secondHighestBidPriceJ].stageACompleted()) {
-            if (bidC01Proof[secondHighestBidPriceJ].valid()) {
-                binarySearchR = secondHighestBidPriceJ;
+        if (hasDecBidC01Proof.isTrue()) {
+            if (bidC01Proof[secondHighestPriceJ].valid()) {
+                binarySearchR = secondHighestPriceJ;
             } else {
-                binarySearchL = secondHighestBidPriceJ;
+                binarySearchL = secondHighestPriceJ;
             }
-            secondHighestBidPriceJ = (binarySearchL + binarySearchR) / 2;
+            secondHighestPriceJ = (binarySearchL + binarySearchR) / 2;
+            hasDecBidC01Proof = new bool[](bList.length());
         }
+
         if (phase4Success()) timer[4].start = block.timestamp;
     }
 
@@ -478,11 +513,12 @@ contract Auction {
         require(isPhase4(), "Phase 4 completed successfully.");
         require(timer[3].timesUp(), "Phase 4 still have time to complete.");
         if (bidC01Proof.stageA() == false) {
-            bList.get(1).malicious = true;
+            bList.get(0).malicious = true;
         } else {
             for (uint256 i = 0; i < bList.length(); i++) {
-                if (bidC01Proof.stageAIsDecByB(i) == false)
+                if (hasDecBidC01Proof[i] == false) {
                     bList.get(i).malicious = true;
+                }
             }
         }
         compensateBidderMalicious();
@@ -510,34 +546,31 @@ contract Auction {
             "Length of bList, ux, pi must be same."
         );
         Bidder storage bidder = bList.find(msg.sender);
+        require(bidder.hasDecBidA == false, "Bidder has dec bidA");
         for (uint256 i = 0; i < bList.length(); i++) {
-            bList.get(i).bidA[secondHighestBidPriceJ + 1].set(
-                bList.get(i).bidA[secondHighestBidPriceJ + 1].decrypt(
-                    bidder,
-                    ux[i],
-                    uxInv[i],
-                    pi[i]
-                )
-            );
-            if (
-                bList.get(i).bidA[secondHighestBidPriceJ + 1].isFullDec() &&
-                bList.get(i).bidA[secondHighestBidPriceJ + 1].c.equals(
-                    BigNumberLib.z()
-                )
-            ) {
-                winnerI = i;
+            bList.get(i).bidA[secondHighestPriceJ + 1] = bList.get(i).bidA[
+                secondHighestPriceJ + 1
+            ]
+                .decrypt(bidder, ux[i], uxInv[i], pi[i]);
+        }
+        bidder.hasDecBidA = true;
+        if (bList.hasDecBidA()) {
+            for (uint256 i = 0; i < bList.length(); i++) {
+                if (
+                    bList.get(i).bidA[secondHighestPriceJ + 1].c.equals(
+                        BigNumberLib.z()
+                    )
+                ) {
+                    winnerI = i;
+                }
             }
         }
+
         if (phase5Success()) timer[5].start = block.timestamp;
     }
 
     function phase5Success() public view returns (bool) {
-        for (uint256 i = 0; i < bList.length(); i++) {
-            if (bList.get(i).bidA[secondHighestBidPriceJ + 1].isFullDec()) {
-                return true;
-            }
-        }
-        return false;
+        return bList.hasDecBidA();
     }
 
     function phase5Resolve() public {
@@ -545,11 +578,8 @@ contract Auction {
         require(isPhase5(), "Phase 5 completed successfully.");
         require(timer[4].timesUp(), "Phase 5 still have time to complete.");
         for (uint256 i = 0; i < bList.length(); i++) {
-            for (uint256 j = 0; j < bList.length(); j++) {
-                if (
-                    bList.get(winnerI).bidA[secondHighestBidPriceJ + 1]
-                        .isDecByB(j) == false
-                ) bList.get(j).malicious = true;
+            if (bList.get(i).hasDecBidA == false) {
+                bList.get(i).malicious = true;
             }
         }
         compensateBidderMalicious();
@@ -574,7 +604,7 @@ contract Auction {
             "Only winner needs to pay."
         );
         require(
-            msg.value == price[secondHighestBidPriceJ],
+            msg.value == price[secondHighestPriceJ],
             "msg.value must equals to the second highest price."
         );
         payable(sellerAddr).transfer(msg.value);

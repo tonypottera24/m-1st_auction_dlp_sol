@@ -14,10 +14,12 @@ struct Bidder {
     uint256 balance;
     bool malicious;
     BigNumber.instance elgamalY;
-    Ct[] bid;
     Ct bidProd;
+    bool hasDecBidProd;
     Bid01Proof[] bid01Proof;
+    bool hasDecBid01Proof;
     Ct[] bidA;
+    bool hasDecBidA;
 }
 
 struct BidderList {
@@ -77,12 +79,32 @@ library BidderListLib {
         return false;
     }
 
-    // function removeMalicious(BidderList storage bList) internal {
-    //     for (uint256 i = 0; i < length(bList); i++) {
-    //         if (get(bList, i).malicious) {
-    //             remove(bList, i);
-    //             i--;
-    //         }
-    //     }
-    // }
+    function hasDecBidProd(BidderList storage bList)
+        internal
+        view
+        returns (bool)
+    {
+        for (uint256 i = 0; i < length(bList); i++) {
+            if (get(bList, i).hasDecBidProd == false) return false;
+        }
+        return true;
+    }
+
+    function hasDecBid01Proof(BidderList storage bList)
+        internal
+        view
+        returns (bool)
+    {
+        for (uint256 i = 0; i < length(bList); i++) {
+            if (get(bList, i).hasDecBid01Proof == false) return false;
+        }
+        return true;
+    }
+
+    function hasDecBidA(BidderList storage bList) internal view returns (bool) {
+        for (uint256 i = 0; i < length(bList); i++) {
+            if (get(bList, i).hasDecBidA == false) return false;
+        }
+        return true;
+    }
 }

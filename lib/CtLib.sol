@@ -2,88 +2,32 @@
 pragma solidity >=0.7.0 <0.8.0;
 pragma experimental ABIEncoderV2;
 
-import {Bidder, BidderList, BidderListLib} from "./BidderListLib.sol";
+import {BoolLib} from "./BoolLib.sol";
 import {BigNumber} from "./BigNumber.sol";
 import {BigNumberLib} from "./BigNumberLib.sol";
-// import {UIntLib} from "./UIntLib.sol";
+import {Bidder, BidderList, BidderListLib} from "./BidderListLib.sol";
 import {SameDLProof, SameDLProofLib} from "./SameDLProofLib.sol";
 
 struct Ct {
-    BigNumber.instance[] u;
+    BigNumber.instance u;
     BigNumber.instance c;
 }
 
 library CtLib {
+    using BoolLib for bool;
+    using BoolLib for bool[];
     using BigNumberLib for BigNumber.instance;
     using BigNumberLib for BigNumber.instance[];
     using SameDLProofLib for SameDLProof;
     using SameDLProofLib for SameDLProof[];
 
-    function set(Ct storage ct1, Ct memory ct2) internal {
-        for (uint256 i = 0; i < ct2.u.length; i++) {
-            if (ct1.u.length < i + 1) ct1.u.push();
-            ct1.u[i] = ct2.u[i];
-        }
-        ct1.c = ct2.c;
-    }
-
-    // function set(Ct[] storage ct1, Ct[] memory ct2) internal {
-    //     for (uint256 i = 0; i < ct2.length; i++) {
-    //         set(ct1[i], ct2[i]);
-    //     }
-    // }
-
     function isNotSet(Ct memory ct) internal view returns (bool) {
-        return ct.u.isNotSet() && ct.c.isNotSet();
+        return ct.u.isNotSet() || ct.c.isNotSet();
     }
 
     function isNotSet(Ct[] memory ct) internal view returns (bool) {
         for (uint256 i = 0; i < ct.length; i++) {
             if (isNotSet(ct[i]) == false) return false;
-        }
-        return true;
-    }
-
-    function isNotDec(Ct memory ct) internal view returns (bool) {
-        for (uint256 i = 0; i < ct.u.length; i++) {
-            if (ct.u[i].isNotSet() == true) return false;
-        }
-        return true;
-    }
-
-    function isNotDec(Ct[] memory ct) internal view returns (bool) {
-        for (uint256 i = 0; i < ct.length; i++) {
-            if (isNotDec(ct[i]) == false) return false;
-        }
-        return true;
-    }
-
-    function isDecByB(Ct memory ct, uint256 bidder_i)
-        internal
-        view
-        returns (bool)
-    {
-        return ct.u[bidder_i].isNotSet();
-    }
-
-    function isDecByB(Ct[] memory ct, uint256 bidder_i)
-        internal
-        view
-        returns (bool)
-    {
-        for (uint256 i = 0; i < ct.length; i++) {
-            if (isDecByB(ct[i], bidder_i) == false) return false;
-        }
-        return true;
-    }
-
-    function isFullDec(Ct memory ct) internal view returns (bool) {
-        return ct.u.isNotSet();
-    }
-
-    function isFullDec(Ct[] memory ct) internal view returns (bool) {
-        for (uint256 i = 0; i < ct.length; i++) {
-            if (isFullDec(ct[i]) == false) return false;
         }
         return true;
     }
@@ -130,14 +74,9 @@ library CtLib {
     ) internal view returns (Ct memory) {
         require(ux.mul(uxInv).isIdentityElement(), "uxInv is not ux's inverse");
         require(
-            ct.u[bidder.index].isNotSet() == false,
-            "ct.u[bidder.index] should not be zero."
-        );
-        require(
-            pi.valid(ct.u[bidder.index], BigNumberLib.g(), ux, bidder.elgamalY),
+            pi.valid(ct.u, BigNumberLib.g(), ux, bidder.elgamalY),
             "Same discrete log verification failed."
         );
-        ct.u[bidder.index] = BigNumberLib.zero();
         return Ct(ct.u, ct.c.mul(uxInv));
     }
 
