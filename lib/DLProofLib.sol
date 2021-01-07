@@ -6,8 +6,8 @@ import {BigNumber} from "./BigNumber.sol";
 import {BigNumberLib} from "./BigNumberLib.sol";
 
 struct DLProof {
-    BigNumber.instance t;
-    BigNumber.instance r;
+    BigNumber.instance grr;
+    BigNumber.instance rrr;
 }
 
 library DLProofLib {
@@ -18,7 +18,7 @@ library DLProofLib {
         BigNumber.instance memory g,
         BigNumber.instance memory y
     ) internal view returns (bool) {
-        bytes32 digest = keccak256(abi.encodePacked(g.val, y.val, pi.t.val));
+        bytes32 digest = keccak256(abi.encodePacked(g.val, y.val, pi.grr.val));
         uint256 bit_length = 0;
         for (uint256 i = 0; i < 256; i++) {
             if ((digest >> i) > 0) bit_length++;
@@ -29,8 +29,7 @@ library DLProofLib {
             digest_packed[i] = digest[i];
         }
         BigNumber.instance memory c =
-            BigNumber.instance(digest_packed, false, bit_length);
-        c = c.modQ();
-        return pi.t.equals(g.pow(pi.r).mul(y.pow(c)));
+            BigNumber.instance(digest_packed, false, bit_length).modQ();
+        return g.pow(pi.rrr).equals(pi.grr.mul(y.pow(c)));
     }
 }

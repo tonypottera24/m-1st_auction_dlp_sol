@@ -32,6 +32,13 @@ library CtLib {
         return true;
     }
 
+    function set(Ct[] storage ct1, Ct[] memory ct2) internal {
+        for (uint256 i = 0; i < ct2.length; i++) {
+            if (ct1.length <= i) ct1.push(ct2[i]);
+            else ct1[i] = ct2[i];
+        }
+    }
+
     function mul(Ct memory ct1, Ct memory ct2)
         internal
         view
@@ -40,16 +47,35 @@ library CtLib {
         return Ct(ct1.u.mul(ct2.u), ct1.c.mul(ct2.c));
     }
 
-    function divZ(Ct memory ct) internal view returns (Ct memory) {
-        return Ct(ct.u, ct.c.mul(BigNumberLib.zInv()));
+    function mul(Ct[] memory ct1, Ct[] memory ct2)
+        internal
+        view
+        returns (Ct[] memory result)
+    {
+        require(ct1.length == ct2.length, "ct1.length != ct2.length");
+        result = new Ct[](ct1.length);
+        for (uint256 i = 0; i < ct1.length; i++) {
+            result[i] = mul(ct1[i], ct2[i]);
+        }
     }
 
-    function divZ(Ct[] memory ct) internal view returns (Ct[] memory) {
-        Ct[] memory result = new Ct[](ct.length);
+    function mulC(Ct memory ct, BigNumber.instance memory a)
+        internal
+        view
+        returns (Ct memory)
+    {
+        return Ct(ct.u, ct.c.mul(a));
+    }
+
+    function mulC(Ct[] memory ct, BigNumber.instance memory a)
+        internal
+        view
+        returns (Ct[] memory result)
+    {
+        result = new Ct[](ct.length);
         for (uint256 i = 0; i < ct.length; i++) {
-            result[i] = divZ(ct[i]);
+            result[i] = mulC(ct[i], a);
         }
-        return result;
     }
 
     function equals(Ct memory ct1, Ct memory ct2) internal view returns (bool) {
@@ -86,11 +112,10 @@ library CtLib {
         BigNumber.instance[] memory ux,
         BigNumber.instance[] memory uxInv,
         SameDLProof[] memory pi
-    ) internal view returns (Ct[] memory) {
-        Ct[] memory result = new Ct[](ct.length);
+    ) internal view returns (Ct[] memory result) {
+        result = new Ct[](ct.length);
         for (uint256 i = 0; i < ct.length; i++) {
             result[i] = decrypt(ct[i], bidder, ux[i], uxInv[i], pi[i]);
         }
-        return result;
     }
 }

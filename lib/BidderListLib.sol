@@ -3,10 +3,8 @@ pragma solidity >=0.7.0 <0.8.0;
 pragma experimental ABIEncoderV2;
 
 import {Ct, CtLib} from "./CtLib.sol";
-import {Bid01Proof} from "./Bid01ProofLib.sol";
 import {BigNumber} from "./BigNumber.sol";
 import {BigNumberLib} from "./BigNumberLib.sol";
-import {Bid01Proof, Bid01ProofLib} from "./Bid01ProofLib.sol";
 
 struct Bidder {
     uint256 index;
@@ -14,12 +12,11 @@ struct Bidder {
     uint256 balance;
     bool malicious;
     BigNumber.instance elgamalY;
-    Ct bidProd;
-    bool hasDecBidProd;
-    Bid01Proof[] bid01Proof;
-    bool hasDecBid01Proof;
     Ct[] bidA;
-    bool hasDecBidA;
+    bool hasSubmitBidCA;
+    bool hasDecBidCA;
+    bool win;
+    bool payed;
 }
 
 struct BidderList {
@@ -31,8 +28,6 @@ library BidderListLib {
     using CtLib for Ct;
     using CtLib for Ct[];
     using BigNumberLib for BigNumber.instance;
-    using Bid01ProofLib for Bid01Proof;
-    using Bid01ProofLib for Bid01Proof[];
 
     function init(
         BidderList storage bList,
@@ -47,7 +42,6 @@ library BidderListLib {
         bidder.addr = addr;
         bidder.balance = balance;
         bidder.elgamalY = elgamalY;
-        bidder.malicious = false;
     }
 
     function get(BidderList storage bList, uint256 i)
@@ -77,34 +71,5 @@ library BidderListLib {
             if (get(bList, i).malicious) return true;
         }
         return false;
-    }
-
-    function hasDecBidProd(BidderList storage bList)
-        internal
-        view
-        returns (bool)
-    {
-        for (uint256 i = 0; i < length(bList); i++) {
-            if (get(bList, i).hasDecBidProd == false) return false;
-        }
-        return true;
-    }
-
-    function hasDecBid01Proof(BidderList storage bList)
-        internal
-        view
-        returns (bool)
-    {
-        for (uint256 i = 0; i < length(bList); i++) {
-            if (get(bList, i).hasDecBid01Proof == false) return false;
-        }
-        return true;
-    }
-
-    function hasDecBidA(BidderList storage bList) internal view returns (bool) {
-        for (uint256 i = 0; i < length(bList); i++) {
-            if (get(bList, i).hasDecBidA == false) return false;
-        }
-        return true;
     }
 }

@@ -6,12 +6,39 @@ import {BigNumber} from "./BigNumber.sol";
 library BigNumberLib {
     uint256 public constant bitLength = 3072;
 
+    function from_uint256(uint256 a)
+        internal
+        pure
+        returns (BigNumber.instance memory)
+    {
+        uint256 bit_length = 0;
+        for (uint256 i = 0; i < 256; i++) {
+            if ((a >> i) > 0) bit_length++;
+            else break;
+        }
+        bytes memory a_packed = abi.encodePacked(a);
+        bytes memory packed = new bytes(32);
+        for (uint256 i = 0; i < packed.length && i < a_packed.length; i++) {
+            packed[packed.length - i - 1] = a_packed[a_packed.length - i - 1];
+        }
+        return BigNumber.instance(packed, false, bit_length);
+    }
+
     function zero() internal pure returns (BigNumber.instance memory) {
         return
             BigNumber.instance(
                 hex"0000000000000000000000000000000000000000000000000000000000000000",
                 false,
                 0
+            );
+    }
+
+    function one() internal pure returns (BigNumber.instance memory) {
+        return
+            BigNumber.instance(
+                hex"0000000000000000000000000000000000000000000000000000000000000001",
+                false,
+                1
             );
     }
 
@@ -76,6 +103,33 @@ library BigNumberLib {
                 false,
                 2
             );
+    }
+
+    function gInv() internal pure returns (BigNumber.instance memory) {
+        if (bitLength == 1024) {
+            return
+                BigNumber.instance(
+                    hex"737570802bb5712ad5e61456ab8157ef9b89884c99e6404e8835543d1354bac8a5aea3b1dffb15b8c58910395a8011d9e895f16c87c101fe98769028fd47d54ac88b84bf1426640f47062600aa92769f77bdf8ff576d7a1dd047797c2fc9873428ecfa53e448c94a9e357fb57ed926d7a251cf8731b93e22e3918bff28730f88",
+                    false,
+                    1023
+                );
+        } else if (bitLength == 2048) {
+            return
+                BigNumber.instance(
+                    hex"489f092825c06c16340cf10fd3fd29e6d82c1d4ffaea35d402d99d5f20be1cc52d62543a6744a7d77338c052ffc68a657597fb0157cf9b9ce5093405b3ebebc637fa45bbf0d3e7e368751729e6e5bbf484b875dae1350a7f4f6c25cfa434b08c31a3fb07f3a7e0340b085a027bd6cddc7936f39da5a17501be7ae926caa28103931039b9d73ad828abbbb1c3eac9637e0002ecd530b941ed2087131222120a8fab59da432a47f2cd1922ff2bfaf8b557ddd8bfd3a008c353d7ec056e9f99e26282d0dc7b6157389348b8f88747d4fdfc94d900d5d72d902a419c824ff8a3dd3ccd01be9fe42a72b0420c134bc465fcd452736199a1dfe6dd9f81f40577b92930",
+                    false,
+                    2046
+                );
+        } else if (bitLength == 3072) {
+            return
+                BigNumber.instance(
+                    hex"7ce308596066912dd1dcb7551f9d555455c3fe4c972fda314fe4eb6ef7577e926801d1fb7786e956f2ea67a26474dcc88a0204d7ef1fb5bd100236efa8caa45df7edfb5bd029e01ae9ec785d7825d52a4c6306ab9f7528a20d4d944329b3a2c398b2eb908dcc50ffa638f65faa186024870cb705fd3a8e5fe3a9970e819141d757c5ec220c0ca2d03269f61b3ca23176713ccfb9cb9b1fb7404af690ff191528518bf3022f465f7b2a043725a19dbb31247a14b307de8a822c8e5443b7a715d9cf2f10f78a6bd576d92bc98d5ed448d8a8908e1ea34cdd851f7493b63a9896e819fbd328c5efc7aee71b4cdd92707b9dd79db53c918f419f3bcd18a2126f16790879529495615a8561c1e1f948775b76ffe7e81106b7cedc98bd4dddd6c2936928925d25cd6a1600aa64d030f192543fe2c00abfc69d0ef72f442b440dd46200cafd7e710effb972a45cd6cdff47dc6aa51285f145ebdddf42983b92e36cc0ff8c453312d5b28a39621b1d3fba851958e7713d3f777476c66e5735c6dd6df880",
+                    false,
+                    3071
+                );
+        } else {
+            revert("bitLength not exist.");
+        }
     }
 
     function z() internal pure returns (BigNumber.instance memory) {
@@ -155,23 +209,13 @@ library BigNumberLib {
         return true;
     }
 
-    function isSet(BigNumber.instance memory a) internal view returns (bool) {
-        return isNotSet(a) == false;
-    }
-
     function isIdentityElement(BigNumber.instance memory a)
         internal
         view
         returns (bool)
     {
         if (a.bitlen == 0) return false;
-        BigNumber.instance memory b1 =
-            BigNumber.instance(
-                hex"0000000000000000000000000000000000000000000000000000000000000001",
-                false,
-                1
-            );
-        return BigNumber.cmp(modP(a), modP(b1), false) == 0;
+        return BigNumber.cmp(modP(a), modP(one()), false) == 0;
     }
 
     function modP(BigNumber.instance memory a)
@@ -221,5 +265,21 @@ library BigNumberLib {
         returns (BigNumber.instance memory)
     {
         return BigNumber.prepare_modexp(modP(a), k, p());
+    }
+
+    function divZ(BigNumber.instance memory a)
+        internal
+        view
+        returns (BigNumber.instance memory)
+    {
+        return mul(a, zInv());
+    }
+
+    function divG(BigNumber.instance memory a)
+        internal
+        view
+        returns (BigNumber.instance memory)
+    {
+        return mul(a, gInv());
     }
 }

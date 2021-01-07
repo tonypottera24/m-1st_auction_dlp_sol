@@ -7,9 +7,9 @@ import {BigNumberLib} from "./BigNumberLib.sol";
 import {Ct, CtLib} from "./CtLib.sol";
 
 struct SameDLProof {
-    BigNumber.instance t1;
-    BigNumber.instance t2;
-    BigNumber.instance r;
+    BigNumber.instance grr1;
+    BigNumber.instance grr2;
+    BigNumber.instance rrr;
 }
 
 library SameDLProofLib {
@@ -31,8 +31,8 @@ library SameDLProofLib {
                     g2.val,
                     y1.val,
                     y2.val,
-                    pi.t1.val,
-                    pi.t2.val
+                    pi.grr1.val,
+                    pi.grr2.val
                 )
             );
         uint256 bit_length = 0;
@@ -45,11 +45,10 @@ library SameDLProofLib {
             digest_packed[i] = digest[i];
         }
         BigNumber.instance memory c =
-            BigNumber.instance(digest_packed, false, bit_length);
-        c = c.modQ();
+            BigNumber.instance(digest_packed, false, bit_length).modQ();
         return
-            pi.t1.equals(g1.pow(pi.r).mul(y1.pow(c))) &&
-            pi.t2.equals(g2.pow(pi.r).mul(y2.pow(c)));
+            g1.pow(pi.rrr).equals(pi.grr1.mul(y1.pow(c))) &&
+            g2.pow(pi.rrr).equals(pi.grr2.mul(y2.pow(c)));
     }
 
     function valid(
